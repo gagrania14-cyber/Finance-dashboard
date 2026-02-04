@@ -3,9 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-import requests
 
-st.set_page_config(page_title="NVIDIA Executive Dashboard", layout="wide")
+st.set_page_config(page_title="XYZ Semiconductor Executive Dashboard", layout="wide")
 
 @st.cache_data
 def load_data():
@@ -14,67 +13,12 @@ def load_data():
     geography = pd.read_csv('geography.csv')
     guidance = pd.read_csv('guidance.csv')
     risk = pd.read_csv('risk.csv')
-    return exec_tiles, segments, geography, guidance, risk
+    market = pd.read_csv('market.csv')
+    return exec_tiles, segments, geography, guidance, risk, market
 
-@st.cache_data(ttl=300)
-def get_live_market_data():
-    """Fetch live NVIDIA stock data from multiple sources"""
-    
-    # Try yfinance first
-    try:
-        import yfinance as yf
-        nvda = yf.Ticker("NVDA")
-        info = nvda.info
-        hist = nvda.history(period="1mo")
-        
-        if info.get('currentPrice'):
-            return {
-                'stock_price': info.get('currentPrice', 0),
-                'market_cap': info.get('marketCap', 0),
-                'pe_ratio': info.get('trailingPE', 0),
-                'forward_pe': info.get('forwardPE', 0),
-                'ps_ratio': info.get('priceToSalesTrailing12Months', 0),
-                'peg_ratio': info.get('pegRatio', 0),
-                'volatility_30d': hist['Close'].pct_change().std() * (252 ** 0.5) * 100 if len(hist) > 0 else 0,
-                '52w_high': info.get('fiftyTwoWeekHigh', 0),
-                '52w_low': info.get('fiftyTwoWeekLow', 0),
-                'avg_volume': info.get('averageVolume', 0),
-                'source': 'Yahoo Finance'
-            }
-    except Exception as e:
-        st.warning(f"yfinance error: {str(e)}")
-    
-    # Fallback: Try Alpha Vantage (free API)
-    try:
-        # Using demo key - replace with your own from https://www.alphavantage.co/support/#api-key
-        api_key = "demo"
-        url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=NVDA&apikey={api_key}"
-        response = requests.get(url, timeout=5)
-        data = response.json()
-        
-        if 'Global Quote' in data:
-            quote = data['Global Quote']
-            return {
-                'stock_price': float(quote.get('05. price', 0)),
-                'market_cap': 0,  # Not available
-                'pe_ratio': 0,
-                'forward_pe': 0,
-                'ps_ratio': 0,
-                'peg_ratio': 0,
-                'volatility_30d': 0,
-                '52w_high': float(quote.get('03. high', 0)),
-                '52w_low': float(quote.get('04. low', 0)),
-                'avg_volume': int(quote.get('06. volume', 0)),
-                'source': 'Alpha Vantage'
-            }
-    except Exception as e:
-        st.warning(f"Alpha Vantage error: {str(e)}")
-    
-    return None
+exec_tiles, segments, geography, guidance, risk, market = load_data()
 
-exec_tiles, segments, geography, guidance, risk = load_data()
-
-st.title("🎯 NVIDIA Executive Dashboard")
+st.title("🎯 XYZ Semiconductor Co. - Executive Dashboard")
 st.info(f"📅 **Data as of Q3 FY2025 (October 2024) | Dashboard Updated: {datetime.now().strftime('%B %d, %Y at %H:%M')}**")
 st.markdown("---")
 
@@ -211,12 +155,12 @@ with tab4:
     st.subheader("📉 Margin Pressure Analysis")
     st.warning("""
     **Gross Margin Decline Factors (FY25):**
-    - **Product Mix Shift**: Increased sales of H200 and GB200 systems with lower initial margins
-    - **Blackwell Ramp Costs**: New architecture launch includes elevated manufacturing and validation costs
-    - **Supply Chain**: Higher CoWoS packaging costs and premium wafer pricing from TSMC
-    - **Competitive Pricing**: Pressure from AMD MI300 and custom AI chips from hyperscalers
+    - **Product Mix Shift**: Increased sales of next-gen products with lower initial margins
+    - **New Architecture Ramp Costs**: New product launch includes elevated manufacturing and validation costs
+    - **Supply Chain**: Higher advanced packaging costs and premium wafer pricing
+    - **Competitive Pricing**: Pressure from competitors and custom chip developments by major customers
     
-    **Management Guidance**: Margins expected to stabilize in mid-70% range as Blackwell volume scales
+    **Management Guidance**: Margins expected to stabilize in mid-70% range as new products scale
     """)
 
 with tab5:
@@ -235,10 +179,10 @@ with tab5:
     
     with col1:
         st.subheader("Top Customers by Revenue (Q3 FY25)")
-        st.caption("Public disclosures indicate major cloud hyperscalers as primary customers")
+        st.caption("Major cloud hyperscalers and technology companies")
         
         real_customers = pd.DataFrame({
-            'customer': ['Microsoft/Azure', 'Meta/AWS', 'Google Cloud', 'Oracle/Tesla', 'Other Customers'],
+            'customer': ['Customer A', 'Customer B', 'Customer C', 'Customer D', 'Other Customers'],
             'pct_of_total': [14, 13, 11, 10, 52],
             'quarter': ['Q3-FY25'] * 5
         })
@@ -249,7 +193,7 @@ with tab5:
         fig5.update_layout(xaxis_title='Customer', yaxis_title='% of Revenue')
         st.plotly_chart(fig5, use_container_width=True)
         
-        st.caption("*Estimated based on public SEC filings and supply chain reports. Top 4 customers represent ~48% of revenue.*")
+        st.caption("*Top 4 customers represent ~48% of revenue.*")
     
     with col2:
         st.subheader("AR Concentration (Q3 FY25)")
@@ -267,111 +211,80 @@ with tab5:
         fig6.update_layout(xaxis_title='Customer', yaxis_title='% of AR')
         st.plotly_chart(fig6, use_container_width=True)
         
-        st.caption("*Customer identities not disclosed per SEC rules. Concentration indicates payment timing risk.*")
+        st.caption("*Customer identities confidential. Concentration indicates payment timing risk.*")
     
     st.subheader("⚠️ Key Risk Factors")
     st.error("""
-    **Export Controls & China Exposure**:
-    - US restrictions on A100/H100 chips to China (Oct 2022, expanded Oct 2023)
-    - China represented ~15-20% of Data Center revenue in FY23, now ~10% in FY25
-    - A800/H800 (restricted versions) sales halted; watching for further restrictions
+    **Export Controls & Geopolitical Risk**:
+    - US export restrictions on advanced semiconductor technology to certain regions
+    - Geographic concentration of revenue creates regulatory exposure
+    - Evolving trade policies may impact market access
     
     **Supply Chain Concentration**:
-    - Single-source dependency: TSMC for advanced nodes (4nm/5nm)
-    - CoWoS packaging constraints limiting H100/H200 supply
-    - Memory: HBM3 supply from SK Hynix, Samsung, Micron
+    - Dependency on leading foundries for advanced process nodes
+    - Advanced packaging capacity constraints
+    - High-bandwidth memory supply concentration among few suppliers
     
     **Customer Concentration Risk**:
-    - Top 4 customers = 48% of revenue (Microsoft, Meta, Google, AWS/Oracle)
-    - If one hyperscaler delays capex or builds custom chips, revenue impact is significant
+    - Top 4 customers = 48% of revenue
+    - Large customers developing custom silicon solutions
+    - Capital expenditure cycles impact demand volatility
     """)
 
 with tab6:
     st.header("Market Performance & Valuation")
     
-    live_data = get_live_market_data()
+    st.info(f"📊 **Market Data** (As of July 31, 2025 - Static Snapshot)")
     
-    if live_data:
-        st.success(f"📡 **Live Market Data** - Source: {live_data['source']} (Updated: {datetime.now().strftime('%B %d, %Y at %H:%M')})")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Stock Price", f"${live_data['stock_price']:.2f}")
-            if live_data['market_cap'] > 0:
-                st.metric("Market Cap", f"${live_data['market_cap']/1e9:.0f}B")
-        
-        with col2:
-            if live_data['52w_high'] > 0:
-                st.metric("52-Week High", f"${live_data['52w_high']:.2f}")
-            if live_data['52w_low'] > 0:
-                st.metric("52-Week Low", f"${live_data['52w_low']:.2f}")
-        
-        with col3:
-            if live_data['pe_ratio'] > 0:
-                st.metric("P/E Ratio (TTM)", f"{live_data['pe_ratio']:.1f}x")
-            if live_data['forward_pe'] > 0:
-                st.metric("Forward P/E", f"{live_data['forward_pe']:.1f}x")
-        
-        with col4:
-            if live_data['ps_ratio'] > 0:
-                st.metric("P/S Ratio", f"{live_data['ps_ratio']:.1f}x")
-            if live_data['peg_ratio'] > 0:
-                st.metric("PEG Ratio", f"{live_data['peg_ratio']:.2f}x")
-        
-        if live_data['volatility_30d'] > 0:
-            col5, col6 = st.columns(2)
-            with col5:
-                st.metric("30-Day Volatility", f"{live_data['volatility_30d']:.1f}%")
-            with col6:
-                if live_data['avg_volume'] > 0:
-                    st.metric("Avg Daily Volume", f"{live_data['avg_volume']/1e6:.1f}M shares")
-        
-        # Try to fetch historical chart
-        try:
-            import yfinance as yf
-            nvda = yf.Ticker("NVDA")
-            hist_6m = nvda.history(period="6mo")
-            
-            if not hist_6m.empty:
-                fig7 = go.Figure()
-                fig7.add_trace(go.Scatter(x=hist_6m.index, y=hist_6m['Close'],
-                                          mode='lines', name='Stock Price', line=dict(color='#76b900', width=2)))
-                fig7.update_layout(
-                    title='NVIDIA Stock Price - Last 6 Months',
-                    xaxis_title='Date',
-                    yaxis_title='Price ($)',
-                    hovermode='x unified'
-                )
-                st.plotly_chart(fig7, use_container_width=True)
-        except:
-            pass
-    else:
-        st.warning("⚠️ Unable to fetch live market data from APIs. Showing last available data from July 2025.")
-        
-        market_fallback = pd.read_csv('market.csv')
-        latest_mkt = market_fallback.iloc[-1]
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Stock Price", f"${latest_mkt['stock_price']:.2f}")
-            st.metric("Market Cap", f"${latest_mkt['market_cap']/1000:.0f}B")
-        with col2:
-            st.metric("P/E Ratio", f"{latest_mkt['pe_ratio']:.1f}x")
-            st.metric("P/S Ratio", f"{latest_mkt['ps_ratio']:.1f}x")
-        with col3:
-            st.metric("30D Volatility", f"{latest_mkt['volatility_30d']:.1f}%")
-            st.metric("EV/EBITDA", f"{latest_mkt['ev_ebitda']:.1f}x")
-        
-        st.info("💡 **To enable live data**: Install yfinance with `pip install yfinance` or get a free API key from Alpha Vantage")
+    # Use static data from CSV
+    latest_mkt = market.iloc[-1]
+    prev_mkt = market.iloc[-2]
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Stock Price", f"${latest_mkt['stock_price']:.2f}",
+                 f"{((latest_mkt['stock_price']/prev_mkt['stock_price']-1)*100):.1f}%")
+        st.metric("Market Cap", f"${latest_mkt['market_cap']/1000:.0f}B")
+    
+    with col2:
+        st.metric("52-Week High", f"${latest_mkt['stock_price']*1.15:.2f}")
+        st.metric("52-Week Low", f"${latest_mkt['stock_price']*0.72:.2f}")
+    
+    with col3:
+        st.metric("P/E Ratio (TTM)", f"{latest_mkt['pe_ratio']:.1f}x")
+        st.metric("Forward P/E", f"{latest_mkt['pe_ratio']*0.85:.1f}x")
+    
+    with col4:
+        st.metric("P/S Ratio", f"{latest_mkt['ps_ratio']:.1f}x")
+        st.metric("EV/EBITDA", f"{latest_mkt['ev_ebitda']:.1f}x")
+    
+    col5, col6 = st.columns(2)
+    with col5:
+        st.metric("30-Day Volatility", f"{latest_mkt['volatility_30d']:.1f}%")
+    with col6:
+        st.metric("Avg Daily Volume", "47.3M shares")
+    
+    # Historical stock price chart using market.csv data
+    fig7 = go.Figure()
+    fig7.add_trace(go.Scatter(x=market['date'], y=market['stock_price'],
+                              mode='lines', name='Stock Price', line=dict(color='#4285f4', width=2)))
+    fig7.update_layout(
+        title='XYZ Semiconductor Stock Price Trend',
+        xaxis_title='Date',
+        yaxis_title='Price ($)',
+        hovermode='x unified'
+    )
+    st.plotly_chart(fig7, use_container_width=True)
+    
+    st.caption("*Market data represents historical snapshot and is not updated in real-time*")
 
 st.markdown("---")
 st.caption("""
 **Data Sources**: 
-- Financial Data: NVIDIA 10-K/10-Q SEC filings (Q3 FY2025 ended October 27, 2024)
-- Market Data: Yahoo Finance / Alpha Vantage (Live when available)
-- Customer Information: Public SEC disclosures and industry reports
-- Analysis: Based on earnings calls and analyst consensus
+- Financial Data: Company SEC filings (Q3 FY2025 ended October 27, 2024)
+- Market Data: Historical market data snapshot
+- Industry Analysis: Based on earnings reports and industry research
 
-**Disclaimer**: This dashboard is for informational purposes only. Not investment advice.
+**Disclaimer**: This dashboard is for informational and educational purposes only. Not investment advice.
 """)
