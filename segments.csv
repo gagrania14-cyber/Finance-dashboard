@@ -1,0 +1,29 @@
+quarter,segment,revenue,qoq_growth,yoy_growth,compute_revenue,networking_revenue
+Q1-FY24,Data Center,4284,18.4,26.3,3840,444
+Q1-FY24,Gaming,2240,-5.2,-38.3,,
+Q1-FY24,Professional Visualization,295,-53.0,-54.5,,
+Q1-FY24,Automotive,296,1.7,114.5,,
+Q2-FY24,Data Center,10323,141.0,171.2,9250,1073
+Q2-FY24,Gaming,2486,11.0,-22.0,,
+Q2-FY24,Professional Visualization,379,28.5,-28.4,,
+Q2-FY24,Automotive,253,-14.5,-15.3,,
+Q3-FY24,Data Center,14514,40.6,279.0,13000,1514
+Q3-FY24,Gaming,2856,14.9,15.0,,
+Q3-FY24,Professional Visualization,416,9.8,-23.0,,
+Q3-FY24,Automotive,261,3.2,4.4,,
+Q4-FY24,Data Center,18404,26.8,409.3,16450,1954
+Q4-FY24,Gaming,2865,0.3,56.0,,
+Q4-FY24,Professional Visualization,463,11.3,-6.5,,
+Q4-FY24,Automotive,281,7.7,-4.1,,
+Q1-FY25,Data Center,22563,22.6,426.7,20150,2413
+Q1-FY25,Gaming,2646,-7.6,18.0,,
+Q1-FY25,Professional Visualization,427,-7.8,45.0,,
+Q1-FY25,Automotive,329,17.1,11.1,,
+Q2-FY25,Data Center,26272,16.4,154.5,23450,2822
+Q2-FY25,Gaming,2880,8.8,15.9,,
+Q2-FY25,Professional Visualization,454,6.3,19.8,,
+Q2-FY25,Automotive,346,5.2,36.8,,
+Q3-FY25,Data Center,30771,17.1,101.5,27450,3321
+Q3-FY25,Gaming,3278,13.8,14.8,,
+Q3-FY25,Professional Visualization,486,7.0,16.8,,
+Q3-FY25,Automotive,449,29.8,72.0,,

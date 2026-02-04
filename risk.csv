@@ -1,0 +1,9 @@
+risk_type,customer,pct_of_total,quarter
+customer,Customer A,13.0,Q3-FY25
+customer,Customer B,10.0,Q3-FY25
+customer,Customer C,10.0,Q3-FY25
+customer,Others,67.0,Q3-FY25
+ar,Customer A,15.0,Q3-FY25
+ar,Customer D,12.0,Q3-FY25
+ar,Customer E,11.0,Q3-FY25
+ar,Others,62.0,Q3-FY25
