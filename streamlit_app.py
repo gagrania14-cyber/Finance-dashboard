@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-import yfinance as yf
+import requests
 
 st.set_page_config(page_title="NVIDIA Executive Dashboard", layout="wide")
 
@@ -18,25 +18,59 @@ def load_data():
 
 @st.cache_data(ttl=300)
 def get_live_market_data():
+    """Fetch live NVIDIA stock data from multiple sources"""
+    
+    # Try yfinance first
     try:
+        import yfinance as yf
         nvda = yf.Ticker("NVDA")
         info = nvda.info
         hist = nvda.history(period="1mo")
         
-        return {
-            'stock_price': info.get('currentPrice', 0),
-            'market_cap': info.get('marketCap', 0),
-            'pe_ratio': info.get('trailingPE', 0),
-            'forward_pe': info.get('forwardPE', 0),
-            'ps_ratio': info.get('priceToSalesTrailing12Months', 0),
-            'peg_ratio': info.get('pegRatio', 0),
-            'volatility_30d': hist['Close'].pct_change().std() * (252 ** 0.5) * 100 if len(hist) > 0 else 0,
-            '52w_high': info.get('fiftyTwoWeekHigh', 0),
-            '52w_low': info.get('fiftyTwoWeekLow', 0),
-            'avg_volume': info.get('averageVolume', 0)
-        }
-    except:
-        return None
+        if info.get('currentPrice'):
+            return {
+                'stock_price': info.get('currentPrice', 0),
+                'market_cap': info.get('marketCap', 0),
+                'pe_ratio': info.get('trailingPE', 0),
+                'forward_pe': info.get('forwardPE', 0),
+                'ps_ratio': info.get('priceToSalesTrailing12Months', 0),
+                'peg_ratio': info.get('pegRatio', 0),
+                'volatility_30d': hist['Close'].pct_change().std() * (252 ** 0.5) * 100 if len(hist) > 0 else 0,
+                '52w_high': info.get('fiftyTwoWeekHigh', 0),
+                '52w_low': info.get('fiftyTwoWeekLow', 0),
+                'avg_volume': info.get('averageVolume', 0),
+                'source': 'Yahoo Finance'
+            }
+    except Exception as e:
+        st.warning(f"yfinance error: {str(e)}")
+    
+    # Fallback: Try Alpha Vantage (free API)
+    try:
+        # Using demo key - replace with your own from https://www.alphavantage.co/support/#api-key
+        api_key = "demo"
+        url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=NVDA&apikey={api_key}"
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        
+        if 'Global Quote' in data:
+            quote = data['Global Quote']
+            return {
+                'stock_price': float(quote.get('05. price', 0)),
+                'market_cap': 0,  # Not available
+                'pe_ratio': 0,
+                'forward_pe': 0,
+                'ps_ratio': 0,
+                'peg_ratio': 0,
+                'volatility_30d': 0,
+                '52w_high': float(quote.get('03. high', 0)),
+                '52w_low': float(quote.get('04. low', 0)),
+                'avg_volume': int(quote.get('06. volume', 0)),
+                'source': 'Alpha Vantage'
+            }
+    except Exception as e:
+        st.warning(f"Alpha Vantage error: {str(e)}")
+    
+    return None
 
 exec_tiles, segments, geography, guidance, risk = load_data()
 
@@ -91,7 +125,6 @@ with tab1:
 with tab2:
     st.header("Segment Performance (FY2024 - FY2025)")
     
-    # Convert to billions
     segments_display = segments.copy()
     segments_display['revenue_b'] = segments_display['revenue'] / 1000
     
@@ -204,7 +237,6 @@ with tab5:
         st.subheader("Top Customers by Revenue (Q3 FY25)")
         st.caption("Public disclosures indicate major cloud hyperscalers as primary customers")
         
-        # Real customer data based on public information
         real_customers = pd.DataFrame({
             'customer': ['Microsoft/Azure', 'Meta/AWS', 'Google Cloud', 'Oracle/Tesla', 'Other Customers'],
             'pct_of_total': [14, 13, 11, 10, 52],
@@ -260,53 +292,63 @@ with tab6:
     live_data = get_live_market_data()
     
     if live_data:
-        st.success(f"📡 **Live Market Data** (Updated: {datetime.now().strftime('%B %d, %Y at %H:%M')})")
+        st.success(f"📡 **Live Market Data** - Source: {live_data['source']} (Updated: {datetime.now().strftime('%B %d, %Y at %H:%M')})")
         
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.metric("Stock Price", f"${live_data['stock_price']:.2f}")
-            st.metric("Market Cap", f"${live_data['market_cap']/1e9:.0f}B")
+            if live_data['market_cap'] > 0:
+                st.metric("Market Cap", f"${live_data['market_cap']/1e9:.0f}B")
         
         with col2:
-            st.metric("52-Week High", f"${live_data['52w_high']:.2f}")
-            st.metric("52-Week Low", f"${live_data['52w_low']:.2f}")
+            if live_data['52w_high'] > 0:
+                st.metric("52-Week High", f"${live_data['52w_high']:.2f}")
+            if live_data['52w_low'] > 0:
+                st.metric("52-Week Low", f"${live_data['52w_low']:.2f}")
         
         with col3:
-            st.metric("P/E Ratio (TTM)", f"{live_data['pe_ratio']:.1f}x")
-            st.metric("Forward P/E", f"{live_data['forward_pe']:.1f}x")
+            if live_data['pe_ratio'] > 0:
+                st.metric("P/E Ratio (TTM)", f"{live_data['pe_ratio']:.1f}x")
+            if live_data['forward_pe'] > 0:
+                st.metric("Forward P/E", f"{live_data['forward_pe']:.1f}x")
         
         with col4:
-            st.metric("P/S Ratio", f"{live_data['ps_ratio']:.1f}x")
-            st.metric("PEG Ratio", f"{live_data['peg_ratio']:.2f}x")
+            if live_data['ps_ratio'] > 0:
+                st.metric("P/S Ratio", f"{live_data['ps_ratio']:.1f}x")
+            if live_data['peg_ratio'] > 0:
+                st.metric("PEG Ratio", f"{live_data['peg_ratio']:.2f}x")
         
-        col5, col6 = st.columns(2)
-        with col5:
-            st.metric("30-Day Volatility", f"{live_data['volatility_30d']:.1f}%")
-        with col6:
-            st.metric("Avg Daily Volume", f"{live_data['avg_volume']/1e6:.1f}M shares")
+        if live_data['volatility_30d'] > 0:
+            col5, col6 = st.columns(2)
+            with col5:
+                st.metric("30-Day Volatility", f"{live_data['volatility_30d']:.1f}%")
+            with col6:
+                if live_data['avg_volume'] > 0:
+                    st.metric("Avg Daily Volume", f"{live_data['avg_volume']/1e6:.1f}M shares")
         
-        # Stock price chart (last 6 months)
+        # Try to fetch historical chart
         try:
+            import yfinance as yf
             nvda = yf.Ticker("NVDA")
             hist_6m = nvda.history(period="6mo")
             
-            fig7 = go.Figure()
-            fig7.add_trace(go.Scatter(x=hist_6m.index, y=hist_6m['Close'],
-                                      mode='lines', name='Stock Price', line=dict(color='#76b900', width=2)))
-            fig7.update_layout(
-                title='NVIDIA Stock Price - Last 6 Months',
-                xaxis_title='Date',
-                yaxis_title='Price ($)',
-                hovermode='x unified'
-            )
-            st.plotly_chart(fig7, use_container_width=True)
+            if not hist_6m.empty:
+                fig7 = go.Figure()
+                fig7.add_trace(go.Scatter(x=hist_6m.index, y=hist_6m['Close'],
+                                          mode='lines', name='Stock Price', line=dict(color='#76b900', width=2)))
+                fig7.update_layout(
+                    title='NVIDIA Stock Price - Last 6 Months',
+                    xaxis_title='Date',
+                    yaxis_title='Price ($)',
+                    hovermode='x unified'
+                )
+                st.plotly_chart(fig7, use_container_width=True)
         except:
-            st.warning("Unable to load historical stock chart")
+            pass
     else:
-        st.warning("⚠️ Unable to fetch live market data. Showing last available data.")
+        st.warning("⚠️ Unable to fetch live market data from APIs. Showing last available data from July 2025.")
         
-        # Fallback to CSV data
         market_fallback = pd.read_csv('market.csv')
         latest_mkt = market_fallback.iloc[-1]
         
@@ -320,12 +362,14 @@ with tab6:
         with col3:
             st.metric("30D Volatility", f"{latest_mkt['volatility_30d']:.1f}%")
             st.metric("EV/EBITDA", f"{latest_mkt['ev_ebitda']:.1f}x")
+        
+        st.info("💡 **To enable live data**: Install yfinance with `pip install yfinance` or get a free API key from Alpha Vantage")
 
 st.markdown("---")
 st.caption("""
 **Data Sources**: 
 - Financial Data: NVIDIA 10-K/10-Q SEC filings (Q3 FY2025 ended October 27, 2024)
-- Market Data: Yahoo Finance (Real-time)
+- Market Data: Yahoo Finance / Alpha Vantage (Live when available)
 - Customer Information: Public SEC disclosures and industry reports
 - Analysis: Based on earnings calls and analyst consensus
 
